@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: heart-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: heart-api
+  template:
+    metadata:
+      labels:
+        app: heart-api
+    spec:
+      containers:
+      - name: heart-api
+        image: us-central1-docker.pkg.dev/euphoric-effect-473214-i3/heart-api/heart-api:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /ready_check
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /live_check
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 10

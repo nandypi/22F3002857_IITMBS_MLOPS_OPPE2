@@ -1,4 +1,4 @@
-name: Build and Push Docker Image to GCP
+name: CI-CD to GKE
 
 on:
   push:
@@ -6,26 +6,49 @@ on:
       - master
 
 jobs:
-  build-and-push:
+  build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Authenticate to Google Cloud
+    # Authenticate to GCP
+    - name: GCP Auth
       uses: google-github-actions/auth@v2
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Configure Docker for Artifact Registry
-      run: |
-        gcloud auth configure-docker us-central1-docker.pkg.dev
+    # Set up gcloud
+    - name: Setup gcloud
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
 
+    # Configure Docker
+    - name: Configure Docker
+      run: |
+        gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
+
+    # Build image
     - name: Build Docker image
       run: |
-        docker build -t us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest .
+        docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest .
 
+    # Push image
     - name: Push Docker image
       run: |
-        docker push us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest
+        docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest
+
+    # Get GKE credentials
+    - name: Get GKE credentials
+      run: |
+        gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER }} \
+          --zone ${{ secrets.GKE_ZONE }}
+
+    # Deploy to Kubernetes
+    - name: Deploy to GKE
+      run: |
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl apply -f k8s/hpa.yaml
