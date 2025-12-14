@@ -1,1 +1,12 @@
-hi
+fastapi
+uvicorn
+
+numpy
+pandas
+scikit-learn
+joblib
+
+pydantic
+
+opentelemetry-api 
+opentelemetry-sdk
