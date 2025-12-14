@@ -19,34 +19,32 @@ jobs:
       with:
         credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-    # Set up gcloud
     - name: Setup gcloud
       uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    # Configure Docker
+    - name: Install GKE auth plugin
+      run: |
+        gcloud components install gke-gcloud-auth-plugin --quiet
+
     - name: Configure Docker
       run: |
         gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev
 
-    # Build image
     - name: Build Docker image
       run: |
         docker build -t ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest .
 
-    # Push image
     - name: Push Docker image
       run: |
         docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/heart-api/heart-api:latest
 
-    # Get GKE credentials
     - name: Get GKE credentials
       run: |
         gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER }} \
           --zone ${{ secrets.GKE_ZONE }}
 
-    # Deploy to Kubernetes
     - name: Deploy to GKE
       run: |
         kubectl apply -f k8s/deployment.yaml
